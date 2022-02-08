@@ -1,0 +1,2 @@
+sgRNA_name_column: "sgRNA_prefered_name"
+sample_tsv: "samples/samples.tsv"

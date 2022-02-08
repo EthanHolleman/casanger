@@ -1,0 +1,34 @@
+import pandas as pd
+
+samples = pd.read_csv(config['sample_tsv'], sep='\t')
+
+READ_TYPES = ['cas9-sgRNA-read', 'cas9-read', 'template-read']
+BLAST_SUFFI = [
+    'nhr'
+]
+
+wildcard_constraints:
+   seqfile = '\w+'
+
+include: 'rules/blast.smk'
+
+output =  expand(
+            expand(
+                expand(
+                    'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}_{read_date}.blast.{template}.clean.tsv',
+                    run_name='test-run', allow_missing=True
+                ),
+                zip, sgRNA=samples[config['sgRNA_name_column']], 
+                read_date=samples['read_date'], template=samples['template_name'],
+                allow_missing=True
+            ),
+        read_type=READ_TYPES
+        )
+
+print(output)
+
+rule all:
+    input:
+        output
+
+
