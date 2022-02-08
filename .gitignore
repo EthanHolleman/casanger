@@ -1,0 +1,6 @@
+workflow/logs
+workflow/.snakemake
+*.out
+*.err
+workflow/output/
+software/
