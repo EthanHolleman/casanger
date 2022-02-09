@@ -42,6 +42,13 @@ def blast_row_to_feature(row, label, color="#ffd700"):
     )
 
 
+def local_alignment_to_feature(row, color='#ffd700'):
+    row_dict = dict(row)
+    return GraphicFeature(
+        start=row['start'], end=row['end'], color=color, label=row['name']
+    )
+    
+
 def prepare_trace_dict(row):
     # read abi file, extract traces at every fifth value to get
     # basepair resolution of reads then slice to locations
