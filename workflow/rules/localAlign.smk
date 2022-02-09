@@ -32,7 +32,7 @@ rule align_local:
     params:
         subject_frmt='fasta',
         query_frmt='fasta',
-        name=lambda wildcards: wildcards.primer_name
+        name=lambda wildcards: f'Primer {wildcards.primer_name}'
     script:'../scripts/shortLocal.py'
 
 
@@ -48,7 +48,7 @@ rule align_target:
     params:
         subject_frmt='fasta',
         query_frmt='fasta',
-        name=lambda wildcards: wildcards.sgRNA
+        name=lambda wildcards: f'{wildcards.sgRNA} target site'
     script:'../scripts/shortLocal.py'
     
 
