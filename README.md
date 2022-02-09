@@ -1,5 +1,8 @@
 # CaSanger
 
+![example workflow](https://github.com/EthanHolleman/casanger/actions/workflows/main.yml/badge.svg)
+
+
 Cas9 nickase validation by Sanger sequencing analysis workflow: CaSanger.
 
 ## Background
