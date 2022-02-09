@@ -11,21 +11,22 @@ wildcard_constraints:
    seqfile = '\w+'
 
 include: 'rules/blast.smk'
+include: 'rules/bioDraw.smk'
 
 output =  expand(
             expand(
                 expand(
-                    'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}_{read_date}.blast.{template}.clean.tsv',
+                    'output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.sanger.blast.align.pdf',
                     run_name='test-run', allow_missing=True
                 ),
                 zip, sgRNA=samples[config['sgRNA_name_column']], 
-                read_date=samples['read_date'], template=samples['template_name'],
+                template=samples['template_name'],
+                primer_name=samples['primer_name'],
                 allow_missing=True
             ),
         read_type=READ_TYPES
         )
 
-print(output)
 
 rule all:
     input:
