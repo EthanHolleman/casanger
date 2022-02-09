@@ -29,6 +29,7 @@ COL_NAMES = (
 def blast_row_to_feature(row, label, color="#ffd700"):
 
     row_dict = dict(row)
+    print(row_dict)
 
     start, end = row_dict["sstart"], row_dict["send"]
     # determine strand
@@ -136,7 +137,8 @@ def big_plot(features, traces, template_gb, trace_titles):
     record = SeqIO.read(template_gb, "genbank")
     graphic_record = BiopythonTranslator().translate_record(record)
     graphic_record.features += features
-    graphic_record = graphic_record.crop((view_start, view_end))
+
+    graphic_record = graphic_record.crop((int(view_start), int(view_end)))
     graphic_record.plot(ax=subs[-1], with_ruler=True, strand_in_label_threshold=4)
 
     return fig, subs
@@ -149,16 +151,18 @@ def main():
 
     target_tab = pd.read_csv(snakemake.input["target"], sep="\t")
     primer_tab = pd.read_csv(snakemake.input["primer"], sep="\t")
-
-    target_tab.columns = COL_NAMES
-    primer_tab.columns = COL_NAMES
+    
+    assert len(target_tab) == 1
+    assert len(primer_tab) == 1
+    
+    target_feat = local_alignment_to_feature(target_tab.iloc[0])
+    primer_feat = local_alignment_to_feature(primer_tab.iloc[0])
 
     alignment_feats = [
         blast_row_to_feature(row, label="read_type") for i, row in blast_tab.iterrows()
     ]
     alignment_feats += [
-        blast_row_to_feature(target_tab.iloc[0], label="sseqid"),
-        blast_row_to_feature(primer_tab.iloc[0], label="sseqid"),
+        target_feat, primer_feat
     ]
 
     traces = [prepare_trace_dict(row) for i, row in blast_tab.iterrows()]
