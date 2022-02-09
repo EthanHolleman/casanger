@@ -12,6 +12,7 @@ wildcard_constraints:
 
 include: 'rules/blast.smk'
 include: 'rules/bioDraw.smk'
+include: 'rules/localAlign.smk'
 
 output =  expand(
             expand(
