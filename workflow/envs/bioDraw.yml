@@ -5,3 +5,6 @@ channels:
 dependencies:
   - dna_features_viewer
   - colour
+  - numpy
+  - pandas
+  - matplotlib
