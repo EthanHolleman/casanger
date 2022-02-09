@@ -1,0 +1,40 @@
+name: Run workflow
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+      - name: Install dependencies
+        run: |
+          wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+          bash miniconda.sh -b -p $HOME/miniconda
+          export PATH="$HOME/miniconda/bin:$PATH"
+          hash -r
+          conda config --set always_yes yes --set changeps1 no
+          conda update -q conda
+          conda info -a
+          conda config --add channels defaults
+          conda config --add channels conda-forge
+          conda config --add channels bioconda
+          conda install -n base -c conda-forge mamba
+          source ~/miniconda/etc/profile.d/conda.sh
+          conda activate base
+          mamba create -c bioconda -c conda-forge -n snakemake snakemake-minimal pandas
+      - name: List files in the repository
+        uses: actions/checkout@v2
+      - run: |
+          ls ${{ github.workspace }}
+      - name: Run workflow
+        uses: actions/checkout@v2
+      - run: |
+          source ~/miniconda/etc/profile.d/conda.sh
+          cd workflow
+          conda activate snakemake
+          snakemake --cores --configfile config/config.yml --use-conda --dry-run
