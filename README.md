@@ -38,6 +38,10 @@ The workflow requires `conda` and `snakemake` to run. See the
 [Snakemake documentation](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html)
 for help getting these programs installing on your machine.
 
+### Example workflow
+
+![](resources/dag.svg)
+
 ### Configuration files
 
 #### `samples/samples.tsv`
@@ -64,6 +68,14 @@ site and cleaves.
 
 
 ## Output
+
+Main output produced are plots showing
+read alignments and traces for each sgRNA.
+An example plot produced by the workflow is
+shown below.
+
+![](resources/sgRNA4.pFC9.oEH24.sanger.blast.align.png)
+
 
 ## Known issues
 
