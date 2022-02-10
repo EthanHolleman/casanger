@@ -85,7 +85,8 @@ entire region of the longest aligned read. The workflow
 will annotate the locations of all read alignments,
 the sgRNA target site, and the primer used for sequencing along with any other features already
 present in the supplied template genbank file.
-Both `png` and `pdf` versions of the plot are produced and will be located in `output/{run_name}/pots/{sgRNA}/` directory where `{}` indicate variables (snakemake wildcards).
+Both `png` and `pdf` versions of the plot are produced and will be located in
+`output/{run_name}/pots/{sgRNA}/` directory where `{}` indicate variables (snakemake wildcards).
 ## Known issues
 
 - Currently the plotting script does not taken into account gaps in alignment
