@@ -76,7 +76,16 @@ shown below.
 
 ![](resources/sgRNA4.pFC9.oEH24.sanger.blast.align.png)
 
-
+Plots show the Sanger read traces of each 
+tested condition and highlight the region
+of the trace where the nick is expected to
+terminate the read. The bottom most subplot
+is a map of the template zoomed in over the
+entire region of the longest aligned read. The workflow
+will annotate the locations of all read alignments,
+the sgRNA target site, and the primer used for sequencing along with any other features already
+present in the supplied template genbank file.
+Both `png` and `pdf` versions of the plot are produced and will be located in `output/{run_name}/pots/{sgRNA}/` directory where `{}` indicate variables (snakemake wildcards).
 ## Known issues
 
 - Currently the plotting script does not taken into account gaps in alignment
