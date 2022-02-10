@@ -6,8 +6,8 @@ from collections import defaultdict
 import numpy as np
 from colour import Color
 
-CHANNELS = ["DATA9", "DATA10", "DATA11", "DATA12"]
-COLORS = ["black", "red", "green", "blue"]
+CHANNELS = ["DATA9", "DATA10", "DATA11", "DATA12"]  # nucleotide channels (traces)
+COLORS = ["black", "red", "green", "blue"]  # channel colors 
 
 
 # blast tab output column names
@@ -28,9 +28,19 @@ COL_NAMES = (
 
 
 def blast_row_to_feature(row, label, color="#ffd700"):
+    """Convert a row (passed as a pandas df) of blast tabular output
+    to a GraphicRecord instance.
+
+    Args:
+        row (DataFrame): Row of BLAST tabular output as pd.DataFrame
+        label (str): Column name containing value to use as the feature label.
+        color (str, optional): Color of feature. Defaults to "#ffd700".
+
+    Returns:
+        GraphicRecord: Alignment as a GraphicRecord instance.
+    """
 
     row_dict = dict(row)
-    print(row_dict)
 
     start, end = row_dict["sstart"], row_dict["send"]
     # determine strand
@@ -45,6 +55,16 @@ def blast_row_to_feature(row, label, color="#ffd700"):
 
 
 def local_alignment_to_feature(row, color="#ffd700"):
+    """Analogous to `blast_row_to_feature` but converts local alignments
+    produced by `shortLocal.py` output to GraphicRecords.   
+
+    Args:
+        row (DataFrame): Row of BLAST tabular output as pd.DataFrame.
+        color (str, optional): Color of feature. Defaults to "#ffd700".
+
+    Returns:
+        GraphicRecord: Alignment as a GraphicRecord instance.
+    """
     row_dict = dict(row)
     return GraphicFeature(
         start=row["start"], end=row["end"], color=color, label=row["name"],
@@ -53,11 +73,21 @@ def local_alignment_to_feature(row, color="#ffd700"):
 
 
 def prepare_trace_dict(row, strand):
-    # read abi file, extract traces at every fifth value to get
-    # basepair resolution of reads then slice to locations
-    # of start and end of each alignment on the query and finally
-    # pad the sequence based on the start of the alignment to the
-    # the template
+    """Read filepath in `abi` column of `row` argument and use BioPython to
+    parse the trace (abi) file and convert to a dictionary containing one
+    entry per channel (4 channels 1 for each nucleotide species). Reverse trace
+    values if strand is negative (-1). abi files will contain 10 values per
+    base call, currently this method simplifies plotting by grabbing the
+    fifth value from each channel.
+
+    Args:
+        row (DataFrame): Row of BLAST tabular output as pd.DataFrame.
+        strand (int): 1 for + strand, -1 for negative strand read.
+
+    Returns:
+        dict: Dictionary with one entry per channel.
+    """
+
     row_dict = dict(row)
 
     template_record = SeqIO.read(row["template_gb"], "gb")
@@ -97,10 +127,12 @@ def prepare_trace_dict(row, strand):
     return trace
 
 
-def big_plot(features, traces, template_gb, trace_titles):
+def big_plot(features, traces, template_gb, trace_titles, read_strand, sgRNA_name,
+             template_name, template_mass, cas9_species, cas9_concentration,
+             sgRNA_concentration):
 
     fig, subs = plt.subplots(
-        len(traces) + 1,
+        len(traces) + 1,  # traces plus plasmid map
         1,
         figsize=(12, 12),
         sharex=True
@@ -132,27 +164,55 @@ def big_plot(features, traces, template_gb, trace_titles):
             start = 0
         return start, end
 
-    def add_zoom(axis, trace_dict, target_region_start, target_region_end, extend_left=10, extend_right=30):
+    
+    def determine_zoom_coordinates(traces, read_strand):
+        # want to zoom in on the end of the shortest read
+        
+        zoom_start, zoom_end = 0, 0
+        # identify the shortest trace
+        min_read_length = float('inf')
+        min_read_end = None
+        for each_trace in traces:
+            # only look at first channel not interested in actual nucleotides
+            channel = each_trace[CHANNELS[0]]
+            non_zero = np.nonzero(channel)[0]
+            left, right = min(non_zero), max(non_zero)
+            read_len = abs(left - right)
+            if read_len < min_read_length:
+                min_read_length = read_len
+                if read_strand == 1:
+                    min_read_end = right
+                else:
+                    min_read_end = left
+        
+        return (min_read_end - 20, min_read_end + 20)
+                
+            
+                
+    def add_zoom(axis, trace_dict, target_region_start, target_region_end):
         # https://matplotlib.org/devdocs/gallery/subplots_axes_and_figures/zoom_inset_axes.html
         axins = axis.inset_axes([0.2, 0.6, 0.4, 0.4])
         axins = plot_trace(trace_dict, axins, axis_off=False, fill=True)
         
         # region to zoom in on
-        x1, y1, x2, y2 = target_region_start - extend_left, 0, target_region_end + extend_right, axis.get_ylim()[-1]
+        x1, y1, x2, y2 = target_region_start, 0, target_region_end, axis.get_ylim()[-1]
         axins.set_xlim(x1, x2)
         axins.set_ylim(y1, y2)
-        #axins.set_xticklabels([])
+        axins.set_xticklabels([])
         axins.set_yticklabels([])
         rec, vis = axis.indicate_inset_zoom(axins, edgecolor="black")
         vis = (True, True, False, False)
         
         return axis
 
+    zoom_start, zoom_end = determine_zoom_coordinates(traces, read_strand)
+
     for i, each_trace in enumerate(traces):
         subs[i] = plot_trace(
             each_trace, subs[i], trace_titles[i], alpha=0.3
         )  # need way to set title (read_type)
-        subs[i] = add_zoom(subs[i], each_trace, 1400, 1420)
+        
+        subs[i] = add_zoom(subs[i], each_trace, zoom_start, zoom_end)
     
     
     def modify_features(graphic_record):
@@ -177,6 +237,20 @@ def big_plot(features, traces, template_gb, trace_titles):
     
     graphic_record = graphic_record.crop((int(view_start), int(view_end)))
     graphic_record.plot(ax=subs[-1], with_ruler=True, strand_in_label_threshold=4)
+    
+    text = f"Verification of Cas9 nickase activity with {sgRNA_name} via Sanger \
+            sequencing. {template_mass} of {template_name} was treated with or without \
+            {cas9_concentration} of {cas9_species} and with or without {sgRNA_concentration} \
+            of sgRNA. Samples were then subjected to Sanger sequencing utilizing \
+            a primer binding downstream of the {sgRNA_name} target site. Read traces \
+            were converted to fasta files and then aligned back to the {template_name} \
+            sequence using BLASTn."
+    text = text.replace('             ', '\n')
+    
+    fig.text(
+        0.15, 0, text, ha='left'
+        )
+    
 
     return fig, subs
 
@@ -203,15 +277,23 @@ def main():
         blast_row_to_feature(row, label="read_type", color=colors_hex.pop()) for i, row in blast_tab.iterrows()
     ]
     alignment_feats += [target_feat, primer_feat]
+    
+    read_strand = primer_tab.iloc[0]['strand']
 
-    traces = [prepare_trace_dict(row, primer_tab.iloc[0]['strand']) for i, row in blast_tab.iterrows()]
+    traces = [prepare_trace_dict(row, read_strand) for i, row in blast_tab.iterrows()]
 
     template = set(blast_tab["template_gb"])
     assert len(template) == 1  # all should be same template
     template = list(template)[0]
 
     plt, subs = big_plot(
-        alignment_feats, traces, template, list(blast_tab["read_type"])
+        alignment_feats, traces, template, list(blast_tab["read_type"]), 
+        read_strand, sgRNA_name=snakemake.params['sgRNA'],
+        template_name=snakemake.params['template_name'],
+        template_mass=snakemake.params['template_mass'],
+        cas9_species=snakemake.params['cas9_species'],
+        cas9_concentration=snakemake.params['cas9_concentration'],
+        sgRNA_concentration=snakemake.params['sgRNA_concentration']
     )
 
     plt.savefig(snakemake.output["png"])

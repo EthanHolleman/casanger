@@ -9,4 +9,11 @@ rule draw_plots:
     output:
         png='output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.sanger.blast.align.png',
         pdf='output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.sanger.blast.align.pdf'
+    params:
+        sgRNA=lambda wildcards: wildcards.sgRNA,
+        template_name=lambda wildcards: wildcards.template,
+        template_mass=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['template_mass'].values[0],
+        cas9_species=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['cas9_species'].values[0],
+        cas9_concentration=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['cas9_concentration'].values[0],
+        sgRNA_concentration=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['sgRNA_concentration'].values[0]
     script:'../scripts/drawAlignments.py'

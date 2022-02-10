@@ -1,2 +1,2 @@
-sgRNA_fullname	sgRNA_prefered_name	target_PAM	cas9-sgRNA-read	cas9-read	template-read	template_name	template_gb	primer_name	primer_seq	read_date
-T7_init_VR-13_0-01-18-2022	sgRNA4	TCGGAACAGGAGAGCGCACGAGG	data/reads/2-5-22/016_1-Cas9-sgRNA+P4_A03.ab1	data/reads/2-5-22/015_2-Cas9+P4_B03.ab1	data/reads/2-5-22/014_3-template+P4_C03.ab1	pFC9	data/templates/pFC9.gb	oEH24	CGATAGTTACCGGATAAGGCGC	01-05-22
+sgRNA_fullname	sgRNA_prefered_name	target_PAM	Template+Cas9+sgRNA	Template+Cas9	Template	template_name	template_gb	primer_name	primer_seq	read_date	template_mass	cas9_species	cas9_concentration	sgRNA_concentration
+T7_init_VR-13_0-01-18-2022	sgRNA4	TCGGAACAGGAGAGCGCACGAGG	data/reads/2-5-22/016_1-Cas9-sgRNA+P4_A03.ab1	data/reads/2-5-22/015_2-Cas9+P4_B03.ab1	data/reads/2-5-22/014_3-template+P4_C03.ab1	pFC9	data/templates/pFC9.gb	oEH24	CGATAGTTACCGGATAAGGCGC	01-05-22	815 ng	NEB EnGen Spy Cas9 Nickase	30 nM	300 nM
