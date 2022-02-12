@@ -127,7 +127,8 @@ def prepare_trace_dict(row, strand):
     return trace
 
 
-def big_plot(features, traces, template_gb, trace_titles, read_strand, sgRNA_name,
+def big_plot(features, traces, template_gb, trace_titles, read_strand, 
+             cas9_target_start, cas9_target_end, sgRNA_name,
              template_name, template_mass, cas9_species, cas9_concentration,
              sgRNA_concentration):
 
@@ -139,6 +140,8 @@ def big_plot(features, traces, template_gb, trace_titles, read_strand, sgRNA_nam
         # gridspec_kw={"height_ratios": [4, 1]},
     )
     # plot traces
+    template_record = SeqIO.read(template_gb, "gb")
+    template_len = len(template_record.seq)
 
     def plot_trace(trace_dict, axis, title="", axis_off=True, alpha=1, fill=False):
         for i, each_channel in enumerate(trace_dict):
@@ -162,30 +165,32 @@ def big_plot(features, traces, template_gb, trace_titles, read_strand, sgRNA_nam
         start, end = start - pad, end + pad
         if start < 0:
             start = 0
+        if end > template_len:
+            end = template_len
         return start, end
 
     
-    def determine_zoom_coordinates(traces, read_strand):
-        # want to zoom in on the end of the shortest read
+    # def determine_zoom_coordinates(traces, read_strand):
+    #     # want to zoom in on the end of the shortest read
         
-        zoom_start, zoom_end = 0, 0
-        # identify the shortest trace
-        min_read_length = float('inf')
-        min_read_end = None
-        for each_trace in traces:
-            # only look at first channel not interested in actual nucleotides
-            channel = each_trace[CHANNELS[0]]
-            non_zero = np.nonzero(channel)[0]
-            left, right = min(non_zero), max(non_zero)
-            read_len = abs(left - right)
-            if read_len < min_read_length:
-                min_read_length = read_len
-                if read_strand == 1:
-                    min_read_end = right
-                else:
-                    min_read_end = left
+    #     zoom_start, zoom_end = 0, 0
+    #     # identify the shortest trace
+    #     min_read_length = float('inf')
+    #     min_read_end = None
+    #     for each_trace in traces:
+    #         # only look at first channel not interested in actual nucleotides
+    #         channel = each_trace[CHANNELS[0]]
+    #         non_zero = np.nonzero(channel)[0]
+    #         left, right = min(non_zero), max(non_zero)
+    #         read_len = abs(left - right)
+    #         if read_len < min_read_length:
+    #             min_read_length = read_len
+    #             if read_strand == 1:
+    #                 min_read_end = right
+    #             else:
+    #                 min_read_end = left
         
-        return (min_read_end - 20, min_read_end + 20)
+    #     return (min_read_end - 20, min_read_end + 20)
                 
             
                 
@@ -205,14 +210,14 @@ def big_plot(features, traces, template_gb, trace_titles, read_strand, sgRNA_nam
         
         return axis
 
-    zoom_start, zoom_end = determine_zoom_coordinates(traces, read_strand)
+    # zoom_start, zoom_end = determine_zoom_coordinates(traces, read_strand)
 
     for i, each_trace in enumerate(traces):
         subs[i] = plot_trace(
             each_trace, subs[i], trace_titles[i], alpha=0.3
         )  # need way to set title (read_type)
         
-        subs[i] = add_zoom(subs[i], each_trace, zoom_start, zoom_end)
+        subs[i] = add_zoom(subs[i], each_trace, cas9_target_start, cas9_target_end)
     
     
     def modify_features(graphic_record):
@@ -234,6 +239,9 @@ def big_plot(features, traces, template_gb, trace_titles, read_strand, sgRNA_nam
     graphic_record = BiopythonTranslator().translate_record(record)
     graphic_record.features += features
     graphic_record = modify_features(graphic_record)
+    
+    print('='*20)
+    print(view_start, view_end)
     
     graphic_record = graphic_record.crop((int(view_start), int(view_end)))
     graphic_record.plot(ax=subs[-1], with_ruler=True, strand_in_label_threshold=4)
@@ -288,7 +296,8 @@ def main():
 
     plt, subs = big_plot(
         alignment_feats, traces, template, list(blast_tab["read_type"]), 
-        read_strand, sgRNA_name=snakemake.params['sgRNA'],
+        read_strand, target_tab.iloc[0]['start'], target_tab.iloc[0]['end'],
+        sgRNA_name=snakemake.params['sgRNA'],
         template_name=snakemake.params['template_name'],
         template_mass=snakemake.params['template_mass'],
         cas9_species=snakemake.params['cas9_species'],
