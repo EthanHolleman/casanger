@@ -18,7 +18,7 @@ include: 'rules/localAlign.smk'
 output =  expand(
             expand(
                 expand(
-                    'output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.sanger.blast.align.pdf',
+                    'output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.palindromes.png',
                     run_name='test-run', allow_missing=True
                 ),
                 zip, sgRNA=samples[config['sgRNA_name_column']], 

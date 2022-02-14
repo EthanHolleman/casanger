@@ -5,7 +5,7 @@ rule abi_to_fastq:
     input:
         lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA][wildcards.read_type].values[0]
     output:
-        'output/{run_name}/fastq/{sgRNA}/{sgRNA}_{read_type}_{read_date}.fa'
+        'output/{run_name}/fastq/{sgRNA}/{sgRNA}_{read_type}.fa'
     script:'../scripts/abI2fa.py'
 
 
@@ -48,12 +48,12 @@ rule run_blast:
             'output/{run_name}/blast-dbs/{template}/{template}.{blast_suffi}', 
             allow_missing=True, blast_suffi=BLAST_SUFFI
             ),
-        read='output/{run_name}/fastq/{sgRNA}/{sgRNA}_{read_type}_{read_date}.fa'
+        read='output/{run_name}/fastq/{sgRNA}/{sgRNA}_{read_type}.fa'
     params:
         db_path=lambda wildcards: f'output/{wildcards.run_name}/blast-dbs/{wildcards.template}/{wildcards.template}',
         output_dir='output/blast-results'
     output:
-        'output/{run_name}/blast-results/{sgRNA}/{sgRNA}_{read_type}_{read_date}.blast.{template}.tsv'
+        'output/{run_name}/blast-results/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.tsv'
     shell:'''
     mkdir -p {params.output_dir}
     cat {input.read} | blastn -db {params.db_path} -perc_identity 0 -outfmt 6 > {output}
@@ -64,11 +64,11 @@ rule clean_blast_results:
     conda:
         '../envs/Py.yml'
     input:
-        'output/{run_name}/blast-results/{sgRNA}/{sgRNA}_{read_type}_{read_date}.blast.{template}.tsv'
+        'output/{run_name}/blast-results/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.tsv'
     output:
-        'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}_{read_date}.blast.{template}.clean.tsv'
+        'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.clean.tsv'
     params:
-        read_date=lambda wildcards: wildcards.read_date,
+        read_date=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['read_date'].values[0],
         read_type=lambda wildcards: wildcards.read_type,
         template_name=lambda wildcards: wildcards.template,
         template_gb=lambda wildcards: samples.loc[samples['template_name'] == wildcards.template]['template_gb'].values[0],
@@ -82,13 +82,8 @@ rule concat_blast_results:
         '../envs/Py.yml'
     input:
         expand(
-            expand(
-                'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}_{read_date}.blast.{template}.clean.tsv',
-                zip, 
-                read_date=samples['read_date'], template=samples['template_name'],
-                allow_missing=True
-            ),
-        read_type=READ_TYPES, allow_missing=True
+            'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.clean.tsv',
+            read_type=READ_TYPES, allow_missing=True
         )
     output:
         'output/{run_name}/concat-blast-results-clean/{sgRNA}/{sgRNA}.blast.{template}.clean.concat.tsv'

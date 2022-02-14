@@ -17,3 +17,19 @@ rule draw_plots:
         cas9_concentration=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['cas9_concentration'].values[0],
         sgRNA_concentration=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['sgRNA_concentration'].values[0]
     script:'../scripts/drawAlignments.py'
+
+
+rule plot_palindromes:
+    conda:
+        '../envs/bioDraw.yml'
+    input:
+        target='output/{run_name}/local-align/targets/{sgRNA}.{template}.align.tsv',
+        alignment='output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.sanger.blast.align.png'
+    params:
+        genbank=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['template_gb'].values[0],
+        sizes=lambda wildcards: list(range(6, 10))
+    output:
+        png='output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.palindromes.png',
+    script:'../scripts/findPalindromes.py'
+
+
