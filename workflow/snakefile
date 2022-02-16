@@ -19,7 +19,7 @@ output =  expand(
             expand(
                 expand(
                     'output/{run_name}/plots/{sgRNA}/{sgRNA}.{template}.{primer_name}.palindromes.png',
-                    run_name='test-run', allow_missing=True
+                    run_name=config['run_name'], allow_missing=True
                 ),
                 zip, sgRNA=samples[config['sgRNA_name_column']], 
                 template=samples['template_name'],
