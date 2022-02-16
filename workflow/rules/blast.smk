@@ -1,12 +1,27 @@
 
-rule abi_to_fastq:
+rule abi_to_fasta:
     conda:
         '../envs/Py.yml'
     input:
         lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA][wildcards.read_type].values[0]
     output:
-        'output/{run_name}/fastq/{sgRNA}/{sgRNA}_{read_type}.fa'
+        'output/{run_name}/fasta/abiconvert/{sgRNA}/{sgRNA}_{read_type}.fa'
     script:'../scripts/abI2fa.py'
+
+
+rule abi_to_phred_scores:
+    conda:
+        '../envs/Py.yml'
+    input:
+        lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA][wildcards.read_type].values[0]
+    output:
+        'output/{run_name}/phred/{sgRNA}/{sgRNA}_{read_type}.phred'
+    params:
+        sgRNA=lambda wildcards: wildcards.sgRNA,
+        read_type=lambda wildcards: wildcards.read_type
+    script:'../scripts/extract_ab1_phred.py'
+
+
 
 
 rule template_gb_to_fasta:
@@ -35,7 +50,6 @@ rule make_blast_db:
         seq_file_name = lambda wildcards: wildcards.template
 
     shell:'''
-    mkdir -p {params.db_dir}
     makeblastdb -in {input} -parse_seqids -title "{params.seq_file_name}" -dbtype nucl -out {params.db_name}
     '''
 
@@ -48,7 +62,7 @@ rule run_blast:
             'output/{run_name}/blast-dbs/{template}/{template}.{blast_suffi}', 
             allow_missing=True, blast_suffi=BLAST_SUFFI
             ),
-        read='output/{run_name}/fastq/{sgRNA}/{sgRNA}_{read_type}.fa'
+        read='output/{run_name}/fasta/abiconvert/{sgRNA}/{sgRNA}_{read_type}.fa'
     params:
         db_path=lambda wildcards: f'output/{wildcards.run_name}/blast-dbs/{wildcards.template}/{wildcards.template}',
         output_dir='output/blast-results'
@@ -77,12 +91,22 @@ rule clean_blast_results:
     script:'../scripts/cleanBlast.py'
 
 
+rule get_top_result:
+    input:
+        'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.clean.tsv'
+    output:
+        'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.clean.top.tsv'
+    shell:'''
+    head -n 2 {input} > {output}
+    '''
+
+
 rule concat_blast_results:
     conda:
         '../envs/Py.yml'
     input:
         expand(
-            'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.clean.tsv',
+            'output/{run_name}/blast-results-clean/{sgRNA}/{sgRNA}_{read_type}.blast.{template}.clean.top.tsv',
             read_type=READ_TYPES, allow_missing=True
         )
     output:
@@ -92,68 +116,18 @@ rule concat_blast_results:
     script:'../scripts/concatDelim.py'
 
 
-# rule make_primer_fasta_file:
-#     conda:
-#         '../envs/Py.yml'
-#     output:
-#         'output/{run_name}/fasta/primers/{primer_name}.fa'
-#     params:
-#         name=lambda wildcards: wildcards.primer_name,
-#         seq=lambda wildcards: samples.loc[samples['primer_name'] == wildcards.primer_name]['primer_seq'].values[0]
-#     script:'../scripts/makeFasta.py'
+rule concat_phred_scores:
+    conda:
+        '../envs/Py.yml'
+    input:
+        expand(
+            'output/{run_name}/phred/{sgRNA}/{sgRNA}_{read_type}.phred',
+             read_type=READ_TYPES, allow_missing=True
+        )
+    output:
+        'output/{run_name}/phred/{sgRNA}/concat/{sgRNA}.concat.phred'
+    params:
+        delim='\t'
+    script:'../scripts/concatDelim.py'
 
-
-# rule blast_primer:
-#     conda:
-#         '../envs/blast.yml'
-#     input:
-#         read='output/{run_name}/fasta/primers/{primer_name}.fa',
-#         db=expand(
-#             'output/{run_name}/blast-dbs/{template}/{template}.{blast_suffi}', 
-#             allow_missing=True, blast_suffi=BLAST_SUFFI
-#             )
-#     output:
-#         'output/{run_name}/blast-results/primers/{primer_name}.{template}.blast.tsv'
-
-#     params:
-#         db_path=lambda wildcards: f'output/{wildcards.run_name}/blast-dbs/{wildcards.template}/{wildcards.template}',
-#         output_dir='output/blast-results'
-#     shell:'''
-#     mkdir -p {params.output_dir}
-#     cat {input.read} | blastn -db {params.db_path} -perc_identity 0 -outfmt 6 > {output}
-#     '''
-    
-    
-# rule make_target_site_fasta_file:
-#     conda:
-#         '../envs/Py.yml'
-#     output:
-#         'output/{run_name}/fasta/targets/{sgRNA}.target.fa'
-#     params:
-#         name=lambda wildcards: f'{wildcards.sgRNA}-target-with-PAM',
-#         seq=lambda wildcards: samples.loc[samples[config['sgRNA_name_column']] == wildcards.sgRNA]['target_PAM'].values[0]
-#     script:
-#         '../scripts/makeFasta.py'
-
-
-
-# rule blast_cas9_target_sites:
-#     conda:
-#         '../envs/blast.yml'
-#     input:
-#         read='output/{run_name}/fasta/targets/{sgRNA}.target.fa',
-#         db=expand(
-#             'output/{run_name}/blast-dbs/{template}/{template}.{blast_suffi}', 
-#             allow_missing=True, blast_suffi=BLAST_SUFFI
-#             )
-#     output:
-#         'output/{run_name}/blast-results/targets/{sgRNA}.target.{template}.blast.tsv'
-
-#     params:
-#         db_path=lambda wildcards: f'output/{wildcards.run_name}/blast-dbs/{wildcards.template}/{wildcards.template}',
-#         output_dir='output/blast-results'
-#     shell:'''
-#     mkdir -p {params.output_dir}
-#     cat {input.read} | blastn -db {params.db_path} -perc_identity 0 -dust no -expect 10 -outfmt 6 > {output}
-#     '''
 
